@@ -1,2 +1,2 @@
 # writeups
-ctf writeups
+just ctf writeups
