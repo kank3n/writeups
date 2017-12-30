@@ -1,5 +1,5 @@
 # cheat sheet
--
+
 $ vi main.sh
 gdbserver localhost:1234 ./hacknote
 $ chmod +x main.sh
