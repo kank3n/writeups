@@ -104,13 +104,13 @@ stdoutの_IO_FILE structメモリーダンプ
 
 ¥_IO_jump_tのメモリダンプ
 ```
-0x7ffff7dd26a0 <_IO_file_jumps>:	    0x0000000000000000	0x0000000000000000 dummy
-0x7ffff7dd26b0 <_IO_file_jumps+16>:	  0x00007ffff7a8ac80	0x00007ffff7a8b6d0 
-0x7ffff7dd26c0 <_IO_file_jumps+32>:	  0x00007ffff7a8b480	0x00007ffff7a8c530
-0x7ffff7dd26d0 <_IO_file_jumps+48>:	  0x00007ffff7a8d6e0	0x00007ffff7a8a500
-0x7ffff7dd26e0 <_IO_file_jumps+64>:	  0x00007ffff7a8a210	0x00007ffff7a89870
-0x7ffff7dd26f0 <_IO_file_jumps+80>:	  0x00007ffff7a8caa0	0x00007ffff7a897e0
-0x7ffff7dd2700 <_IO_file_jumps+96>:	  0x00007ffff7a89710	0x00007ffff7a7e7b0
+0x7ffff7dd26a0 <_IO_file_jumps>:	 0x0000000000000000	0x0000000000000000 dummy
+0x7ffff7dd26b0 <_IO_file_jumps+16>:	0x00007ffff7a8ac80	0x00007ffff7a8b6d0 
+0x7ffff7dd26c0 <_IO_file_jumps+32>:	0x00007ffff7a8b480	0x00007ffff7a8c530
+0x7ffff7dd26d0 <_IO_file_jumps+48>:	0x00007ffff7a8d6e0	0x00007ffff7a8a500
+0x7ffff7dd26e0 <_IO_file_jumps+64>:	0x00007ffff7a8a210	0x00007ffff7a89870
+0x7ffff7dd26f0 <_IO_file_jumps+80>:	0x00007ffff7a8caa0	0x00007ffff7a897e0
+0x7ffff7dd2700 <_IO_file_jumps+96>:	0x00007ffff7a89710	0x00007ffff7a7e7b0
 0x7ffff7dd2710 <_IO_file_jumps+112>:	0x00007ffff7a8a4e0	0x00007ffff7a89ed0
 0x7ffff7dd2720 <_IO_file_jumps+128>:	0x00007ffff7a89cd0	0x00007ffff7a897d0
 0x7ffff7dd2730 <_IO_file_jumps+144>:	0x00007ffff7a89ec0	0x00007ffff7a8d840
