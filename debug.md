@@ -1,4 +1,4 @@
-# cheat sheet
+# debug
 ```
 $ vi main.sh
 gdbserver localhost:1234 ./a.out
