@@ -102,9 +102,9 @@ stdoutの_IO_FILE structメモリーダンプ
 0x7ffff7dd44d0 <_IO_2_1_stdout_+208>:	0x0000000000000000	0x00007ffff7dd26a0 _IO_jump_tへのポインタ
 ```
 
-¥_IO_jump_tのメモリダンプ
+_IO_jump_tのメモリダンプ
 ```
-0x7ffff7dd26a0 <_IO_file_jumps>:	0x0000000000000000	0x0000000000000000 dummy
+0x7ffff7dd26a0 <_IO_file_jumps>:	0x0000000000000000	0x0000000000000000 __dummy / __dummy2
 0x7ffff7dd26b0 <_IO_file_jumps+16>:	0x00007ffff7a8ac80	0x00007ffff7a8b6d0 
 0x7ffff7dd26c0 <_IO_file_jumps+32>:	0x00007ffff7a8b480	0x00007ffff7a8c530
 0x7ffff7dd26d0 <_IO_file_jumps+48>:	0x00007ffff7a8d6e0	0x00007ffff7a8a500
