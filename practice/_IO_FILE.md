@@ -1,5 +1,7 @@
+# 参考
+* Play with FILE Structure - Yet Another Binary Exploit Technique https://www.slideshare.net/AngelBoy1/play-with-file-structure-yet-another-binary-exploit-technique
 
-
+# _IO_FILE structとその関連
 _IO_FILE
 ```
 struct _IO_FILE {
