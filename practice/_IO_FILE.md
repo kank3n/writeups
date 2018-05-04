@@ -83,3 +83,36 @@ struct _IO_jump_t
     JUMP_FIELD(_IO_imbue_t, __imbue);
 };
 ```
+
+stdoutの_IO_FILE structメモリーダンプ
+```
+0x7ffff7dd4400 <_IO_2_1_stdout_>:	    0x00000000fbad2887	0x00007ffff7dd4483 flags / _IO_read_ptr
+0x7ffff7dd4410 <_IO_2_1_stdout_+16>:	0x00007ffff7dd4483	0x00007ffff7dd4483 _IO_read_end / _IO_read_base
+0x7ffff7dd4420 <_IO_2_1_stdout_+32>:	0x00007ffff7dd4483	0x00007ffff7dd4483 _IO_write_base / _IO_write_ptr
+0x7ffff7dd4430 <_IO_2_1_stdout_+48>:	0x00007ffff7dd4483	0x00007ffff7dd4483 _IO_write_end / _IO_buf_base
+0x7ffff7dd4440 <_IO_2_1_stdout_+64>:	0x00007ffff7dd4484	0x0000000000000000 _IO_buf_end / _IO_save_base
+0x7ffff7dd4450 <_IO_2_1_stdout_+80>:	0x0000000000000000	0x0000000000000000 _IO_backup_base / _IO_save_end
+0x7ffff7dd4460 <_IO_2_1_stdout_+96>:	0x0000000000000000	0x00007ffff7dd4640 *_markers / *_chain 次の_IO_FILE structへのポインタ
+0x7ffff7dd4470 <_IO_2_1_stdout_+112>:	0x0000000000000001	0xffffffffffffffff _fileno / ?
+0x7ffff7dd4480 <_IO_2_1_stdout_+128>:	0x000000000a000000	0x00007ffff7dd59e0 ? / *_lock
+0x7ffff7dd4490 <_IO_2_1_stdout_+144>:	0xffffffffffffffff	0x0000000000000000 
+0x7ffff7dd44a0 <_IO_2_1_stdout_+160>:	0x00007ffff7dd44e0	0x0000000000000000
+0x7ffff7dd44b0 <_IO_2_1_stdout_+176>:	0x0000000000000000	0x0000000000000000
+0x7ffff7dd44c0 <_IO_2_1_stdout_+192>:	0x00000000ffffffff	0x0000000000000000
+0x7ffff7dd44d0 <_IO_2_1_stdout_+208>:	0x0000000000000000	0x00007ffff7dd26a0 _IO_jump_tへのポインタ
+```
+
+¥_IO_jump_tのメモリダンプ
+```
+0x7ffff7dd26a0 <_IO_file_jumps>:	    0x0000000000000000	0x0000000000000000 dummy
+0x7ffff7dd26b0 <_IO_file_jumps+16>:	  0x00007ffff7a8ac80	0x00007ffff7a8b6d0 
+0x7ffff7dd26c0 <_IO_file_jumps+32>:	  0x00007ffff7a8b480	0x00007ffff7a8c530
+0x7ffff7dd26d0 <_IO_file_jumps+48>:	  0x00007ffff7a8d6e0	0x00007ffff7a8a500
+0x7ffff7dd26e0 <_IO_file_jumps+64>:	  0x00007ffff7a8a210	0x00007ffff7a89870
+0x7ffff7dd26f0 <_IO_file_jumps+80>:	  0x00007ffff7a8caa0	0x00007ffff7a897e0
+0x7ffff7dd2700 <_IO_file_jumps+96>:	  0x00007ffff7a89710	0x00007ffff7a7e7b0
+0x7ffff7dd2710 <_IO_file_jumps+112>:	0x00007ffff7a8a4e0	0x00007ffff7a89ed0
+0x7ffff7dd2720 <_IO_file_jumps+128>:	0x00007ffff7a89cd0	0x00007ffff7a897d0
+0x7ffff7dd2730 <_IO_file_jumps+144>:	0x00007ffff7a89ec0	0x00007ffff7a8d840
+0x7ffff7dd2740 <_IO_file_jumps+160>:	0x00007ffff7a8d850	0x0000000000000000
+```
