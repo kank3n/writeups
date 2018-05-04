@@ -86,7 +86,7 @@ struct _IO_jump_t
 
 stdoutの_IO_FILE structメモリーダンプ
 ```
-0x7ffff7dd4400 <_IO_2_1_stdout_>:	    0x00000000fbad2887	0x00007ffff7dd4483 flags / _IO_read_ptr
+0x7ffff7dd4400 <_IO_2_1_stdout_>:	0x00000000fbad2887	0x00007ffff7dd4483 flags / _IO_read_ptr
 0x7ffff7dd4410 <_IO_2_1_stdout_+16>:	0x00007ffff7dd4483	0x00007ffff7dd4483 _IO_read_end / _IO_read_base
 0x7ffff7dd4420 <_IO_2_1_stdout_+32>:	0x00007ffff7dd4483	0x00007ffff7dd4483 _IO_write_base / _IO_write_ptr
 0x7ffff7dd4430 <_IO_2_1_stdout_+48>:	0x00007ffff7dd4483	0x00007ffff7dd4483 _IO_write_end / _IO_buf_base
@@ -104,7 +104,7 @@ stdoutの_IO_FILE structメモリーダンプ
 
 ¥_IO_jump_tのメモリダンプ
 ```
-0x7ffff7dd26a0 <_IO_file_jumps>:	 0x0000000000000000	0x0000000000000000 dummy
+0x7ffff7dd26a0 <_IO_file_jumps>:	0x0000000000000000	0x0000000000000000 dummy
 0x7ffff7dd26b0 <_IO_file_jumps+16>:	0x00007ffff7a8ac80	0x00007ffff7a8b6d0 
 0x7ffff7dd26c0 <_IO_file_jumps+32>:	0x00007ffff7a8b480	0x00007ffff7a8c530
 0x7ffff7dd26d0 <_IO_file_jumps+48>:	0x00007ffff7a8d6e0	0x00007ffff7a8a500
