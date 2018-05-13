@@ -1,4 +1,4 @@
-# question
+# Question
 ```
 ELF Crumble
 
@@ -13,11 +13,21 @@ Files:
     pieces.tgz
 ```
 
-# solution
-We have one "broken" elf file and some fragmented files.
+# Solution
+We have one "broken" elf file and some fragmented files. I checked size of fragment files.
 ```
+$ tar xvzf pieces.tgz
 $ ls
 broken  fragment_1.dat  fragment_2.dat  fragment_3.dat  fragment_4.dat  fragment_5.dat  fragment_6.dat  fragment_7.dat  fragment_8.dat
+$ du -b fragment_*
+79	fragment_1.dat
+48	fragment_2.dat
+175	fragment_3.dat
+42	fragment_4.dat
+128	fragment_5.dat
+22	fragment_6.dat
+283	fragment_7.dat
+30	fragment_8.dat
 ```
 
 I checked broken elf using `objdump` command. I found some functions padded with "58 pop eax" that should be fixed. I calculated how many bytes for each function.
@@ -52,7 +62,7 @@ I searched sequences of bytes "5589e5" - function prologue - and "c9c3" - functi
 **Function epilogue**
 ```
 c9                   	leave  
-c3                   	ret  
+c3                   	ret      <-- In somecase only this.
 ```
 
 I begun to play a piece of puzzle. I tried to combine sequences of bytes from prologue and those of bytes up to epilogue, and what size.
@@ -63,18 +73,61 @@ Function `f1`, `f2` and `f3` are very straightforward.
 * `f2`: fragment_1.dat(4th byte - 72nd byte)
 * `f3`: fragment_1.dat(last 7 bytes) + fragment_5.dat(up to 109th byte)
 
-But, function `recover_flag` and `main` are troublesome. I just combined below for `recover_flag` because size is total 58 bytes. In order to make it sure, I dumped it to hex and paste it to [ODA](https://onlinedisassembler.com/odaweb/). It seems to be very organized and I was sure this function works.
+But, function `recover_flag` and `main` are troublesome. I just combined below for `recover_flag` because size is total 58 bytes. 
 
 * `recover_flag`: fragment_5.dat(last 19 bytes) + fragment_6.dat + fragment_2.dat(first 17 bytes)
 
+In order to make it sure, I dumped it to hex and paste it to [ODA](https://onlinedisassembler.com/odaweb/). It seems to be very organized and I was sure this function works.
 
-* `main`: fragment_2.dat + fragment_3.dat + fragment_4.dat
+```
+$ cat fragment_5.dat fragment_6.dat fragment_2.dat > recover_flag
+$ xxd -ps recover_flag 
+e89a010000059618000083ec0cff750889c3e8f4fcffff83c4108945f4c7
+45f000000000eb2d8b55f08b450801d00fb6088b45f001c0ba6d00000029
+c289d089c38b55f08b450801d009d989ca88108345f0018b45f489c2c1ea
+1f01d0d1f883e8043945f07cbf908b5dfcc9c3 (snip)5589e583ec08e827010000
+0523180000ff7508e8f3fdffff83c40483ec0cff7508e866ffffff83c410
+83ec0cff7508e813ffffff83c41090c9c3(snip) 8d4c240483e4f0ff71fc5589e5
+5756535183ec38e8bbfcffff81c3db170000
+```
+
+`main` is more complexed. Total size of the combination below is 248 byes that must be `main` function size.
+
+* `main`: fragment_2.dat(last 31 bytes) + fragment_3.dat + fragment_4.dat
+
+However, I suspected how to handle 10 bytes below just before prologue in `fragment_2.dat`.
+
+```
+$ xxd -ps fragment_2.dat 
+83ec0cff7508e813ffffff83c41090c9c3 (snip)8d4c240483e4f0ff71fc(snip) 5589e5
+5756535183ec38e8bbfcffff81c3db170000
+```
+
+I just combined files and go to [ODA](https://onlinedisassembler.com/odaweb/) again.
+```
+$ cat fragment_2.dat fragment_3.dat fragment_4.dat > main
+$ xxd -ps main
+83ec0cff7508e813ffffff83c41090c9c3 (snip)8d4c240483e4f0ff71fc5589e5
+5756535183ec38e8bbfcffff81c3db17000089c88b40048945c465a11400
+00008945e431c0c745cd44696420c745d1596f7520c745d546696e44c745
+d920746865c745dd20476c5566c745e1653fc645e300c745c80100000083
+ec0c8d45cd50e854ffffff83c4100fb645e10fbec80fb645cd0fbef80fb6
+45d80fbec08945c00fb645d80fbed08955bc0fb645d80fbef08975b80fb6
+45ce0fbef00fb645e10fbed00fb645d50fbec083ec0c5157ff75c0ff75bc
+ff75b85652508d83b0e9ffff50e871fbffff83c430b8000000008b7de465
+333d140000007405e8880000008d65f0595b5e5f5d8d61fcc3(snip)
+```
+
+10 bytes stand for first three lines instruction. These instruction executes save return address and stack alignment. Therefore, it just stay here and may work!
+![2018-05-13 12 08 00](https://user-images.githubusercontent.com/9530961/39963472-9f2c3496-56a6-11e8-96f5-6a02d3090aa9.png)
 
 ```
 $ xxd -r -p answer.txt > answer
 $ chmod +x answer
 $ ./answer 
 welcOOOme
-Segmentation fault
 ```
+
+So flag is "welcOOOme".
+
 
