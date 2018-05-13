@@ -59,14 +59,16 @@ I begun to play a piece of puzzle. I tried to combine sequences of bytes from pr
 
 Function `f1`, `f2` and `f3` are very straightforward.
 
-* `f1`: fragment_8.dat fragment_7.dat fragment_1.dat(first 3 bytes)
+* `f1`: fragment_8.dat + fragment_7.dat + fragment_1.dat(first 3 bytes)
 * `f2`: fragment_1.dat(4th byte - 72nd byte)
-* `f3`: fragment_1.dat(last 7 bytes) fragment_5.dat(up to 109th byte)
+* `f3`: fragment_1.dat(last 7 bytes) + fragment_5.dat(up to 109th byte)
 
-But, function `recover_flag` and `main` are troublesome.
+But, function `recover_flag` and `main` are troublesome. I just combined below for `recover_flag` because size is total 58 bytes. In order to make it sure, I dumped it to hex and paste it to [ODA](https://onlinedisassembler.com/odaweb/). It seems to be very organized and I was sure this function works.
 
-* `recover_flag`: fragment_5.dat(from 110th byte)
-* `main`:
+* `recover_flag`: fragment_5.dat(last 19 bytes) + fragment_6.dat + fragment_2.dat(first 17 bytes)
+
+
+* `main`: fragment_2.dat + fragment_3.dat + fragment_4.dat
 
 ```
 $ xxd -r -p answer.txt > answer
