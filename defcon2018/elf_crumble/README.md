@@ -41,6 +41,33 @@ $ xxd fragment_1.dat
 0000040: 7dfc 137e d790 c9c3 5589 e553 83ec 14    }..~....U..S...
 ```
 
+I searched sequences of bytes "5589e5" - function prologue - and "c9c3" - function epilogue.
+
+**Function prologue**
+```
+55                   	push   ebp
+89 e5                	mov    ebp,esp
+ ```
+
+**Function epilogue**
+```
+c9                   	leave  
+c3                   	ret  
+```
+
+I begun to play a piece of puzzle. I tried to combine sequences of bytes from prologue and those of bytes up to epilogue, and what size.
+
+Function `f1`, `f2` and `f3` are very straightforward.
+
+`f1`: fragment_8.dat fragment_7.dat fragment_1.dat(first 3 bytes)
+`f2`: fragment_1.dat(4th byte - 72nd byte)
+`f3`: fragment_1.dat(last 7 bytes) fragment_5.dat(up to 109th byte)
+
+But, function `recover_flag` and `main` are troublesome.
+
+`recover_flag`: fragment_5.dat(from 110th byte)
+`main`:
+
 ```
 $ xxd -r -p answer.txt > answer
 $ chmod +x answer
