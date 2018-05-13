@@ -16,7 +16,7 @@ Files:
 ```
 
 # Solution
-We have one "broken" elf file and some fragmented files. I checked size of fragment files.
+We have one `broken` elf file and some fragmented files. I checked size of fragment files.
 ```
 $ tar xvzf pieces.tgz
 $ ls
@@ -167,7 +167,7 @@ ec0c8d45cd50e854ffffff83c4100fb645e10fbec80fb645cd0fbef80fb6
 ff75b85652508d83b0e9ffff50e871fbffff83c430b8000000008b7de465
 333d140000007405e8880000008d65f0595b5e5f5d8d61fcc3
 
-In end of the game, I paseted payloads above into hex file from "broken" and reverted it.
+In end of the game, I paseted payloads above into hex file from `broken` and reverted it.
 
 ```
 $ xxd -p broken > answer.txt
