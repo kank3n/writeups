@@ -212,7 +212,7 @@ Port: 21735
 
 ## Solution
 
-バイナリは32bit。checksecを見たところセキュリティー機構が厳しく設定されている。Full RELROなのでGOT Overwriteは出来ないし、PIEも有効なので.textセクションもrandomizeされる。
+バイナリは32bit。checksecを見たところセキュリティー機構が厳しく設定されている。Full RELROなのでGOT Overwriteは出来ないし、PIEが有効なので.textセクションもrandomizeされる。
 ```
 $ checksec --file seczon 
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH	FORTIFY	Fortified Fortifiable  FILE
@@ -249,7 +249,7 @@ Action:
 >> 
 ```
 
-上記見ると`0xf7fb85a0`はlibcのアドレスっぽいし、`0x56555cad`はtextセクションのアドレスのようである。デバッガで確認すると、`0xf7fb85a0`はlibcの`_IO_2_1_stdin`のアドレスで、`0x56555cad`はcomment関数内のアドレスであることがわかった。
+上記見ると`0xf7fb85a0`はlibcのアドレスっぽいし、`0x56555cad`は.textセクションのアドレスのようである。デバッガで確認すると、`0xf7fb85a0`はlibcの`_IO_2_1_stdin`のアドレスで、`0x56555cad`はcomment関数内のアドレスであることがわかった。
 ```
 gef➤  x/xw 0xf7fb85a0
 0xf7fb85a0 <_IO_2_1_stdin_>:	0xfbad208b
