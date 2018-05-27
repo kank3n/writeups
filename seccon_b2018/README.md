@@ -67,7 +67,7 @@ Port: 18373
 ```
 
 ## Solution
-日付と入力したコンテンツを表示するバイナリです。
+日付と入力したコンテンツを表示するバイナリ。
 ```
 $ ./bbs 
 Input Content : AAAAAAAAAAAAA
@@ -211,6 +211,37 @@ Port: 21735
 $ checksec --file seczon 
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH	FORTIFY	Fortified Fortifiable  FILE
 Full RELRO      Canary found      NX enabled    PIE enabled     No RPATH   No RUNPATH   Yes	0		6	seczon
+```
+
+とりあえず適当に動かしてみているとcommentメニューのconfirmationの際にformat string bugが見つかった。`printf`のユーザーからの入力値をそのまま渡すようになっている場合に発生するバグで、スタック上や任意のアドレスにあるメモリー内容のリーク、また任意アドレスへの書き込みが出来てしまう。
+
+なお、このバグを疑ってかかる場合`%p %p %p %p`とか適用に入力して試せばよい。
+```
+$ ./seczon 
++---------------------+
+|      Seczon.com     |
++---------------------+
+|1) Add a item        |
+|2) Comment a item    |
+|3) Show a item       |
+|4) Delete a item     |
++---------------------+
+Action:
+>> 1
+Input item name
+>> aaaa
+Action:
+>> 2
+Choose item ID
+>> 0
+Input a comment
+>> BBBBAAAA %p %p %p %p %p %p %p
+Confirmation
+aaaa
+BBBBAAAA 0x23 0xf76e25a0 0x5656ecad 0xf76e2000 (nil) 0x42424258 0x41414142
+Action:
+>> 
+
 ```
 
 ```
