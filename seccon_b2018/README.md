@@ -206,7 +206,7 @@ Port: 21735
 
 ## Solution
 
-バイナリは32bit。checksecを見たところセキュリティーは厳しい。Full RELROなのでGOT Overwriteは出来ないし、PIEも有効なのでtextセクションもrandomaizeされる。
+バイナリは32bit。checksecを見たところセキュリティーは厳しい。Full RELROなのでGOT Overwriteは出来ないし、PIEも有効なのでtextセクションもrandomizeされる。
 ```
 $ checksec --file seczon 
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH	FORTIFY	Fortified Fortifiable  FILE
@@ -215,7 +215,7 @@ Full RELRO      Canary found      NX enabled    PIE enabled     No RPATH   No RU
 
 とりあえず適当に動かしてみているとcommentメニューのconfirmationの際にformat string bugが見つかった。`printf`にユーザーからの入力値をそのまま渡すようになっている場合に発生するバグで、スタック上や任意のアドレスにあるメモリー内容のリーク、また任意アドレスへの書き込みが出来てしまう。
 
-なお、このバグを疑ってかかる場合`%p %p %p %p`とか適用に入力して試せばよい。
+なお、このバグを疑ってかかる場合`%p %p %p %p`とか適当に入力して試せばよい。
 ```
 $ ./seczon
 +---------------------+
@@ -243,7 +243,7 @@ Action:
 >> 
 ```
 
-上記見ると既に`0xf7fb85a0`がlibcのアドレスっぽいし、`0x56555cad`はtextセクションのアドレスのようである。デバッガで確認すると、`0xf7fb85a0`はlibcの`_IO_2_1_stdin`のアドレスで、`0x56555cad`はcomment関数内のアドレスであることがわかった。
+上記見ると`0xf7fb85a0`はlibcのアドレスっぽいし、`0x56555cad`はtextセクションのアドレスのようである。デバッガで確認すると、`0xf7fb85a0`はlibcの`_IO_2_1_stdin`のアドレスで、`0x56555cad`はcomment関数内のアドレスであることがわかった。
 ```
 gef➤  x/xw 0xf7fb85a0
 0xf7fb85a0 <_IO_2_1_stdin_>:	0xfbad208b
@@ -252,16 +252,16 @@ gef➤  x/xw 0x56555cad
 gef➤  
 ```
 
-libcとtextのアドレスをリークできるので、事前にオフセットを確認してリークしたアドレスから実アドレスを求めればASLR及びPIEをバイパスできることがわかった。`system(sh)`の実行のための`system`関数を動的に求めることができる。
+libcとtextのアドレスをリークできるので、事前にオフセットを確認してリークしたアドレスから実アドレスを求めればASLR及びPIEをバイパスできることがわかった。`system("sh")`の実行のための`system`関数を動的に求めることができる。
 
-次にどうやって`system(sh)`を呼び出すかを考える。よくよくIDAやgdbを使ってみているとプログラム終了時にヒープ領域を`free`で解放しているコードがあった。
+次にどうやって`system("sh")`を呼び出すかを考える。よくよくIDAやgdbを使ってみているとプログラム終了時にヒープ領域を`free`で解放しているコードがあった。
 
-* IDA
+* IDA  
 ![2018-05-27 19 02 18](https://user-images.githubusercontent.com/9530961/40584711-93ca5bec-61e0-11e8-8160-153d94398bc4.png)
 
-* gdb 該当箇所でブレーク
+* gdb 該当箇所でブレーク  
 `free`の引数にヒープのアドレス（1番目のアイテムがある場所）が渡っている。
-```
+```G
 [-------------------------------------code-------------------------------------]
    0x56555b1c <fin+6>:	mov    eax,ds:0x5655804c
    0x56555b21 <fin+11>:	sub    esp,0xc
@@ -290,16 +290,16 @@ GOT Overwriteで`free`を`system`に書き換え、1番目のアイテムの名�
 
 `__free_hook`はlibcのメモリー領域にあるので、これも事前にオフセットを確認しておけば動的に求めることができる。よって下記手順にてエクスプロイトを作っていくことにした。textセクションのリークは不要になった。
 
-* 1. fsbでlibcのアドレス(`_IO_2_1_stdin`のアドレス)をリーク
-* 2. リークしたアドレスから`_IO_2_1_stdin`のオフセットを減算してlibcのベースアドレスを求める
-* 3. libcのベースアドレスと`system`のオフセット、`__free_hook`のオフセットを各々加算して、`system`と`__free_hook`を動的に求める
-* 4. fsbで`system`を`__free_hook`に書き込む
-* 5. メニュー画面で1〜4以外のキー入力をしてプログラムを終了させる = `free`が呼ばれる
+1. fsbでlibcのアドレス(`_IO_2_1_stdin`のアドレス)をリーク
+2. リークしたアドレスから`_IO_2_1_stdin`のオフセットを減算してlibcのベースアドレスを求める
+3. libcのベースアドレスと`system`のオフセット、`__free_hook`のオフセットを各々加算して、`system`と`__free_hook`を動的に求める
+4. fsbで`system`を`__free_hook`に書き込む
+5. メニュー画面で1〜4以外のキー入力をしてプログラムを終了させる = `free`が呼ばれる
 
 またfsbによるメモリー内容のリークや任意アドレスへの書き込みは下記サイトが役に立つので適宜参照しながらエクスプロイトを作っていった。
 [fsbの資料](https://gist.github.com/hhc0null/08c43983b4551f506722)
 
-```
+```P
     add("sh"+"A\0") <--- 1番目のアイテムにshを書いておく、末尾がnullされるので適応な文字"A"を追加
     comment("0","BBBAAAA %p %p %p %p %p %p %p") <--- fsbによりスタックをリーク
 
